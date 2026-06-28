@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Search — Smart SMS{% endblock %}
+{% block topbar_title %}Search Student{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Search Students</h1>
+    <p>Search by ID or partial name (case-insensitive)</p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-body">
+    <form method="GET" action="/search" style="display:flex;gap:12px;align-items:flex-end;">
+      <div class="form-group" style="flex:1;margin:0;">
+        <label>Search Query</label>
+        <div class="search-wrap" style="max-width:100%;">
+          <span class="search-icon">🔍</span>
+          <input type="text" name="q" value="{{ query }}" placeholder="Enter student ID or name…" autofocus/>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Search</button>
+      {% if query %}
+      <a href="/search" class="btn btn-ghost">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+{% if searched %}
+  <div class="page-head" style="margin-bottom:16px;">
+    <div>
+      <span style="font-size:14px;color:var(--ink-mute);">
+        {{ results|length }} result{{ 's' if results|length != 1 else '' }} for
+        <b style="color:var(--ink);">"{{ query }}"</b>
+      </span>
+    </div>
+  </div>
+  {% if results %}
+  <div class="card">
+    <div class="card-body">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Name</th><th>Age</th><th>Grade</th><th>Marks</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in results %}
+            <tr>
+              <td class="td-id">#{{ s.id }}</td>
+              <td class="td-name">{{ s.name }}</td>
+              <td>{{ s.age }}</td>
+              <td><span class="grade grade-{{ s.grade }}">{{ s.grade }}</span></td>
+              <td>
+                <div class="marks-bar">
+                  <span style="font-weight:600;font-size:13px;min-width:30px;">{{ s.marks }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" style="width:{{ s.marks }}%; background:
+                      {% if s.marks >= 75 %}var(--emerald)
+                      {% elif s.marks >= 50 %}var(--gold)
+                      {% else %}var(--rose){% endif %};"></div>
+                  </div>
+                </div>
+              </td>
+              <td style="display:flex;gap:6px;">
+                <a href="/update/{{ s.id }}" class="btn-icon btn-edit" title="Edit">✏️</a>
+                <button class="btn-icon btn-del" onclick="confirmDelete({{ s.id }})" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="card-body">
+      <div class="empty">
+        <div class="empty-icon">🔎</div>
+        <h3>No results found</h3>
+        <p>Try a different name or check the student ID.</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+{% else %}
+<div class="card">
+  <div class="card-body">
+    <div class="empty">
+      <div class="empty-icon">💡</div>
+      <h3>Enter a query above</h3>
+      <p>Search by <b>student ID</b> (e.g. 101) or part of a <b>name</b> (e.g. "ali")</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

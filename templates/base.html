@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Smart SMS{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    /* ── Tokens ─────────────────────────────────────────── */
+    :root {
+      --ink:        #0D0F1A;
+      --ink-soft:   #3B3F5C;
+      --ink-mute:   #7C82A0;
+      --surface:    #F4F5FB;
+      --card:       #FFFFFF;
+      --border:     #E2E4F0;
+      --violet:     #6C5CE7;
+      --violet-d:   #5548C8;
+      --violet-glow:rgba(108,92,231,.18);
+      --gold:       #F5A623;
+      --emerald:    #00C897;
+      --rose:       #FF6584;
+      --sidebar-w:  240px;
+      --radius:     14px;
+      --shadow:     0 2px 16px rgba(13,15,26,.08);
+      --shadow-lg:  0 8px 40px rgba(13,15,26,.13);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--surface);
+      color: var(--ink);
+      display: flex; min-height: 100vh;
+    }
+
+    /* ── Sidebar ────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--ink);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; height: 100vh;
+      z-index: 100; padding: 28px 0 24px;
+    }
+    .sidebar-brand {
+      padding: 0 24px 32px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+    .brand-badge {
+      display: inline-flex; align-items: center; gap: 10px;
+    }
+    .brand-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--violet), #a78bfa);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .brand-name { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.1; }
+    .brand-sub  { font-size: 11px; color: rgba(255,255,255,.4); font-weight: 400; letter-spacing: .5px; }
+    .nav-section { padding: 24px 0 0; flex: 1; overflow-y: auto; }
+    .nav-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 1.2px;
+      text-transform: uppercase; color: rgba(255,255,255,.3);
+      padding: 0 24px 10px;
+    }
+    .nav-link {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 24px; color: rgba(255,255,255,.55);
+      text-decoration: none; font-size: 13.5px; font-weight: 500;
+      border-left: 3px solid transparent;
+      transition: all .18s;
+    }
+    .nav-link:hover, .nav-link.active {
+      background: rgba(255,255,255,.06);
+      color: #fff; border-left-color: var(--violet);
+    }
+    .nav-link .icon { font-size: 16px; width: 20px; text-align: center; }
+
+    /* ── Main ───────────────────────────────────────────── */
+    .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; }
+    .topbar {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 0 32px; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-title { font-size: 16px; font-weight: 700; color: var(--ink); }
+    .topbar-right { display: flex; align-items: center; gap: 14px; }
+    .topbar-badge {
+      background: var(--violet-glow); color: var(--violet);
+      font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px;
+    }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg,var(--violet),#a78bfa);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 14px; font-weight: 700;
+    }
+    .content { padding: 32px; flex: 1; }
+
+    /* ── Cards ──────────────────────────────────────────── */
+    .card {
+      background: var(--card); border-radius: var(--radius);
+      border: 1px solid var(--border); box-shadow: var(--shadow);
+    }
+    .card-head {
+      padding: 20px 24px 0; display: flex;
+      align-items: center; justify-content: space-between;
+    }
+    .card-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+    .card-body  { padding: 20px 24px 24px; }
+
+    /* ── Stat grid ──────────────────────────────────────── */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 18px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--card); border-radius: var(--radius);
+      border: 1px solid var(--border); padding: 22px 24px;
+      box-shadow: var(--shadow);
+    }
+    .stat-label { font-size: 11.5px; font-weight: 600; color: var(--ink-mute); text-transform: uppercase; letter-spacing: .7px; }
+    .stat-value { font-size: 32px; font-weight: 800; color: var(--ink); margin: 6px 0 2px; line-height: 1; }
+    .stat-sub   { font-size: 12px; color: var(--ink-mute); }
+    .stat-icon  { font-size: 28px; float: right; margin-top: -6px; opacity: .85; }
+
+    /* ── Table ──────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th {
+      background: var(--surface); padding: 12px 16px;
+      text-align: left; font-size: 11px; font-weight: 700;
+      letter-spacing: .8px; text-transform: uppercase; color: var(--ink-mute);
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafbff; }
+    tbody td { padding: 13px 16px; color: var(--ink-soft); vertical-align: middle; }
+    .td-name { font-weight: 600; color: var(--ink); }
+    .td-id   { font-family: 'JetBrains Mono',monospace; font-size: 12px; color: var(--ink-mute); }
+
+    /* ── Grade badge ────────────────────────────────────── */
+    .grade {
+      display: inline-block; padding: 3px 10px; border-radius: 6px;
+      font-size: 11px; font-weight: 700; letter-spacing: .5px;
+    }
+    .grade-A { background:#d1fae5; color:#065f46; }
+    .grade-B { background:#dbeafe; color:#1e3a8a; }
+    .grade-C { background:#fef3c7; color:#92400e; }
+    .grade-D { background:#ffedd5; color:#9a3412; }
+    .grade-E,.grade-F { background:#fee2e2; color:#991b1b; }
+
+    /* ── Marks bar ──────────────────────────────────────── */
+    .marks-bar { display: flex; align-items: center; gap: 10px; }
+    .bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 3px; transition: width .6s ease; }
+
+    /* ── Buttons ────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 10px 20px; border-radius: 9px; font-size: 13.5px;
+      font-weight: 600; cursor: pointer; text-decoration: none;
+      border: none; transition: all .17s; font-family: inherit;
+    }
+    .btn-primary {
+      background: var(--violet); color: #fff;
+      box-shadow: 0 4px 14px var(--violet-glow);
+    }
+    .btn-primary:hover { background: var(--violet-d); transform: translateY(-1px); }
+    .btn-ghost {
+      background: transparent; color: var(--ink-soft);
+      border: 1.5px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--violet); color: var(--violet); }
+    .btn-icon {
+      width: 34px; height: 34px; padding: 0; border-radius: 8px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 15px; cursor: pointer; border: 1.5px solid var(--border);
+      background: transparent; transition: all .15s;
+    }
+    .btn-edit:hover  { background: #dbeafe; border-color: #3b82f6; color: #1e40af; }
+    .btn-del:hover   { background: #fee2e2; border-color: var(--rose); color: #b91c1c; }
+
+    /* ── Form ───────────────────────────────────────────── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1/-1; }
+    label { font-size: 12px; font-weight: 600; color: var(--ink-soft); letter-spacing: .3px; }
+    input, select {
+      padding: 10px 14px; border-radius: 9px;
+      border: 1.5px solid var(--border); font-family: inherit;
+      font-size: 13.5px; color: var(--ink);
+      transition: border-color .15s, box-shadow .15s; outline: none;
+      background: var(--card);
+    }
+    input:focus, select:focus {
+      border-color: var(--violet); box-shadow: 0 0 0 3px var(--violet-glow);
+    }
+    .input-hint { font-size: 11px; color: var(--ink-mute); }
+    .form-actions { display: flex; gap: 12px; margin-top: 6px; }
+
+    /* ── Alert / toast ──────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 90px; right: 24px;
+      background: var(--ink); color: #fff;
+      padding: 12px 20px; border-radius: 10px; font-size: 13.5px;
+      box-shadow: var(--shadow-lg); z-index: 999;
+      opacity: 0; transform: translateY(10px);
+      transition: all .3s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { border-left: 4px solid var(--emerald); }
+    .toast.error   { border-left: 4px solid var(--rose); }
+
+    /* ── Error list ─────────────────────────────────────── */
+    .error-list {
+      background: #fff5f5; border: 1px solid #fecaca; border-radius: 9px;
+      padding: 12px 16px; margin-bottom: 18px; display: none;
+    }
+    .error-list ul { padding-left: 18px; }
+    .error-list li { font-size: 13px; color: #b91c1c; margin-bottom: 3px; }
+
+    /* ── Search box ─────────────────────────────────────── */
+    .search-wrap { position: relative; max-width: 420px; }
+    .search-wrap input { width: 100%; padding-left: 40px; }
+    .search-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--ink-mute); }
+
+    /* ── Chatbot ────────────────────────────────────────── */
+    .chat-fab {
+      position: fixed; bottom: 24px; right: 24px;
+      width: 54px; height: 54px; border-radius: 50%;
+      background: linear-gradient(135deg,var(--violet),#a78bfa);
+      box-shadow: 0 6px 24px var(--violet-glow);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 24px; z-index: 200;
+      border: none; color: #fff; transition: transform .2s;
+    }
+    .chat-fab:hover { transform: scale(1.08); }
+    .chat-window {
+      position: fixed; bottom: 90px; right: 24px;
+      width: 340px; border-radius: 16px;
+      background: var(--card); border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg); z-index: 200;
+      display: none; flex-direction: column; overflow: hidden;
+    }
+    .chat-window.open { display: flex; }
+    .chat-header {
+      background: linear-gradient(135deg,var(--violet),#a78bfa);
+      padding: 14px 18px; display: flex; align-items: center; gap: 10px;
+    }
+    .chat-avatar { font-size: 20px; }
+    .chat-hname  { font-size: 14px; font-weight: 700; color: #fff; }
+    .chat-hsub   { font-size: 11px; color: rgba(255,255,255,.7); }
+    .chat-close  { margin-left: auto; background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; }
+    .chat-msgs {
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: flex; flex-direction: column; gap: 12px;
+      max-height: 320px;
+    }
+    .msg { max-width: 88%; line-height: 1.5; font-size: 13px; }
+    .msg-bot {
+      background: var(--surface); color: var(--ink);
+      padding: 10px 14px; border-radius: 0 12px 12px 12px;
+      align-self: flex-start; border: 1px solid var(--border);
+    }
+    .msg-user {
+      background: var(--violet); color: #fff;
+      padding: 10px 14px; border-radius: 12px 0 12px 12px;
+      align-self: flex-end;
+    }
+    .chat-suggestions {
+      padding: 0 16px 12px; display: flex; flex-wrap: wrap; gap: 7px;
+    }
+    .chip {
+      font-size: 11.5px; padding: 5px 11px; border-radius: 20px;
+      background: var(--violet-glow); color: var(--violet);
+      cursor: pointer; border: none; font-family: inherit; font-weight: 600;
+      transition: background .15s;
+    }
+    .chip:hover { background: var(--violet); color: #fff; }
+    .chat-input-row {
+      display: flex; border-top: 1px solid var(--border); padding: 12px;
+      gap: 8px;
+    }
+    .chat-input {
+      flex: 1; border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 8px 12px; font-size: 13px; font-family: inherit; outline: none;
+    }
+    .chat-input:focus { border-color: var(--violet); }
+    .chat-send {
+      background: var(--violet); color: #fff;
+      border: none; border-radius: 8px;
+      padding: 8px 14px; font-size: 16px; cursor: pointer;
+    }
+
+    /* ── Empty state ────────────────────────────────────── */
+    .empty {
+      text-align: center; padding: 60px 20px; color: var(--ink-mute);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty h3   { font-size: 17px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; }
+
+    /* ── Page header ────────────────────────────────────── */
+    .page-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .page-head h1 { font-size: 22px; font-weight: 800; color: var(--ink); }
+    .page-head p  { font-size: 13px; color: var(--ink-mute); margin-top: 2px; }
+
+    /* ── Modal ──────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(13,15,26,.45);
+      display: none; align-items: center; justify-content: center; z-index: 300;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card); border-radius: var(--radius);
+      padding: 28px; max-width: 380px; width: 90%;
+      box-shadow: var(--shadow-lg);
+    }
+    .modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .modal p  { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 22px; }
+    .modal-actions { display: flex; gap: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-badge">
+      <div class="brand-icon">🎓</div>
+      <div>
+        <div class="brand-name">Smart SMS</div>
+        <div class="brand-sub">Student Management</div>
+      </div>
+    </div>
+  </div>
+  <nav class="nav-section">
+    <div class="nav-label">Menu</div>
+    <a href="/" class="nav-link {% if request.endpoint=='index' %}active{% endif %}">
+      <span class="icon">🏠</span> Dashboard
+    </a>
+    <a href="/students" class="nav-link {% if request.endpoint=='view_students' %}active{% endif %}">
+      <span class="icon">👥</span> All Students
+    </a>
+    <a href="/add" class="nav-link {% if request.endpoint=='add_student' %}active{% endif %}">
+      <span class="icon">➕</span> Add Student
+    </a>
+    <a href="/search" class="nav-link {% if request.endpoint=='search_student' %}active{% endif %}">
+      <span class="icon">🔍</span> Search
+    </a>
+    <a href="/analytics" class="nav-link {% if request.endpoint=='analytics' %}active{% endif %}">
+      <span class="icon">📊</span> Analytics
+    </a>
+  </nav>
+</aside>
+
+<!-- Main -->
+<div class="main">
+  <header class="topbar">
+    <span class="topbar-title">{% block topbar_title %}Smart Student Record Analyzer{% endblock %}</span>
+    <div class="topbar-right">
+      <span class="topbar-badge">v1.0</span>
+      <div class="avatar">A</div>
+    </div>
+  </header>
+  <div class="content">
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Delete modal -->
+<div class="modal-overlay" id="delModal">
+  <div class="modal">
+    <h3>⚠️ Confirm Delete</h3>
+    <p>Are you sure you want to delete this student? This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="confirmDel" style="background:var(--rose);box-shadow:none;">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Chatbot FAB -->
+<button class="chat-fab" onclick="toggleChat()" id="chatFab">💬</button>
+
+<!-- Chat window -->
+<div class="chat-window" id="chatWin">
+  <div class="chat-header">
+    <div class="chat-avatar">🤖</div>
+    <div>
+      <div class="chat-hname">SMS Assistant</div>
+      <div class="chat-hsub">Always here to help</div>
+    </div>
+    <button class="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-msgs" id="chatMsgs">
+    <div class="msg msg-bot">👋 Hi! I'm your <b>SMS Assistant</b>. Ask me anything about using this app!</div>
+  </div>
+  <div class="chat-suggestions">
+    <button class="chip" onclick="askChip('How do I add a student?')">Add a student</button>
+    <button class="chip" onclick="askChip('How do I search?')">Search</button>
+    <button class="chip" onclick="askChip('What does analytics show?')">Analytics</button>
+    <button class="chip" onclick="askChip('How do I delete a student?')">Delete</button>
+  </div>
+  <div class="chat-input-row">
+    <input class="chat-input" id="chatInput" placeholder="Ask a question…" onkeydown="if(event.key==='Enter') sendChat()"/>
+    <button class="chat-send" onclick="sendChat()">➤</button>
+  </div>
+</div>
+
+<script>
+// ── Toast ──────────────────────────────────────────────────
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.innerHTML = msg; t.className = `toast ${type} show`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// ── Delete modal ───────────────────────────────────────────
+let delTarget = null;
+function confirmDelete(sid) {
+  delTarget = sid;
+  document.getElementById('delModal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('delModal').classList.remove('open');
+  delTarget = null;
+}
+document.getElementById('confirmDel').onclick = async () => {
+  if (!delTarget) return;
+  const res = await fetch(`/delete/${delTarget}`, {method:'POST'});
+  const data = await res.json();
+  closeModal();
+  if (data.success) { showToast(data.message,'success'); setTimeout(()=>location.reload(),900); }
+  else showToast(data.message,'error');
+};
+
+// ── Chatbot ────────────────────────────────────────────────
+function toggleChat() {
+  const w = document.getElementById('chatWin');
+  w.classList.toggle('open');
+  if (w.classList.contains('open')) document.getElementById('chatInput').focus();
+}
+async function sendChat() {
+  const inp = document.getElementById('chatInput');
+  const msg = inp.value.trim(); if (!msg) return;
+  appendMsg(msg, 'user'); inp.value = '';
+  const res = await fetch('/chat', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({message: msg})
+  });
+  const data = await res.json();
+  appendMsg(data.reply, 'bot');
+}
+function askChip(txt) {
+  document.getElementById('chatInput').value = txt; sendChat();
+}
+function appendMsg(text, who) {
+  const box = document.getElementById('chatMsgs');
+  const div = document.createElement('div');
+  div.className = `msg msg-${who}`;
+  div.innerHTML = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

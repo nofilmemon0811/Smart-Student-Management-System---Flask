@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Smart SMS{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Welcome back 👋</h1>
+    <p>Smart Student Record Analyzer — manage, analyze, and track student performance</p>
+  </div>
+  <a href="/add" class="btn btn-primary">➕ Add Student</a>
+</div>
+
+<!-- Stats -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon">👥</div>
+    <div class="stat-label">Total Students</div>
+    <div class="stat-value">{{ count }}</div>
+    <div class="stat-sub">Records in database</div>
+  </div>
+  {% if students %}
+  {% set marks = students | map(attribute='marks') | list %}
+  {% set avg = (marks | sum / marks | length) | round(1) %}
+  <div class="stat-card">
+    <div class="stat-icon">📈</div>
+    <div class="stat-label">Average Marks</div>
+    <div class="stat-value">{{ avg }}</div>
+    <div class="stat-sub">Out of 100</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🏆</div>
+    <div class="stat-label">Top Score</div>
+    <div class="stat-value">{{ marks | max }}</div>
+    <div class="stat-sub">Highest marks</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">✅</div>
+    <div class="stat-label">Pass Rate</div>
+    <div class="stat-value">{{ ((students | selectattr('marks','ge',50) | list | length) / count * 100) | round(0) | int }}%</div>
+    <div class="stat-sub">Marks ≥ 50</div>
+  </div>
+  {% else %}
+  <div class="stat-card">
+    <div class="stat-icon">📊</div>
+    <div class="stat-label">Average Marks</div>
+    <div class="stat-value">—</div>
+    <div class="stat-sub">No data yet</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Recent students table -->
+<div class="card">
+  <div class="card-head">
+    <span class="card-title">Recent Students</span>
+    <a href="/students" class="btn btn-ghost" style="padding:7px 14px;font-size:12px;">View all →</a>
+  </div>
+  <div class="card-body">
+    {% if students %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Name</th><th>Age</th><th>Grade</th><th>Marks</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in students[-5:] | reverse %}
+          <tr>
+            <td class="td-id">#{{ s.id }}</td>
+            <td class="td-name">{{ s.name }}</td>
+            <td>{{ s.age }}</td>
+            <td><span class="grade grade-{{ s.grade }}">{{ s.grade }}</span></td>
+            <td>
+              <div class="marks-bar">
+                <span style="font-weight:600;font-size:13px;width:30px;">{{ s.marks }}</span>
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:{{ s.marks }}%;background:{% if s.marks>=75 %}var(--emerald){% elif s.marks>=50 %}var(--gold){% else %}var(--rose){% endif %};"></div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <a href="/update/{{ s.id }}" class="btn-icon btn-edit" title="Edit">✏️</a>
+              <button class="btn-icon btn-del" onclick="confirmDelete({{ s.id }})" title="Delete">🗑️</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty">
+      <div class="empty-icon">📭</div>
+      <h3>No students yet</h3>
+      <p>Click <b>Add Student</b> to get started.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

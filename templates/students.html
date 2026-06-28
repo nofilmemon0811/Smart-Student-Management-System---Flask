@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}All Students — Smart SMS{% endblock %}
+{% block topbar_title %}All Students{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>All Students</h1>
+    <p>{{ count }} record{{ 's' if count != 1 else '' }} in the database</p>
+  </div>
+  <a href="/add" class="btn btn-primary">➕ Add Student</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    {% if students %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Grade</th>
+            <th>Marks</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+          <tr>
+            <td class="td-id">#{{ s.id }}</td>
+            <td class="td-name">{{ s.name }}</td>
+            <td>{{ s.age }}</td>
+            <td><span class="grade grade-{{ s.grade }}">{{ s.grade }}</span></td>
+            <td>
+              <div class="marks-bar">
+                <span style="font-weight:600;font-size:13px;min-width:30px;">{{ s.marks }}</span>
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:{{ s.marks }}%; background:
+                    {% if s.marks >= 75 %}var(--emerald)
+                    {% elif s.marks >= 50 %}var(--gold)
+                    {% else %}var(--rose){% endif %};"></div>
+                </div>
+              </div>
+            </td>
+            <td style="display:flex;gap:6px;">
+              <a href="/update/{{ s.id }}" class="btn-icon btn-edit" title="Edit">✏️</a>
+              <button class="btn-icon btn-del" onclick="confirmDelete({{ s.id }})" title="Delete">🗑️</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty">
+      <div class="empty-icon">📭</div>
+      <h3>No students found</h3>
+      <p>Add your first student to get started.</p>
+      <br/>
+      <a href="/add" class="btn btn-primary">➕ Add Student</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

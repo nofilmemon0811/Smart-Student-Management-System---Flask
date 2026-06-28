@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Analytics — Smart SMS{% endblock %}
+{% block topbar_title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Data Analytics</h1>
+    <p>Performance insights across all student records</p>
+  </div>
+</div>
+
+{% if not data %}
+<div class="card">
+  <div class="card-body">
+    <div class="empty">
+      <div class="empty-icon">📊</div>
+      <h3>No data to analyze</h3>
+      <p>Add some students first to see analytics here.</p>
+      <br/>
+      <a href="/add" class="btn btn-primary">➕ Add Student</a>
+    </div>
+  </div>
+</div>
+{% else %}
+
+<!-- Stat cards -->
+<div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+  <div class="stat-card">
+    <div class="stat-icon">👥</div>
+    <div class="stat-label">Total Students</div>
+    <div class="stat-value">{{ data.total }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📈</div>
+    <div class="stat-label">Average Marks</div>
+    <div class="stat-value">{{ data.avg }}</div>
+    <div class="stat-sub">Out of 100</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🏆</div>
+    <div class="stat-label">Top Performer</div>
+    <div class="stat-value" style="font-size:18px;margin-top:8px;">{{ data.top.name.split()[0] }}</div>
+    <div class="stat-sub">{{ data.top.marks }} marks</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">⚠️</div>
+    <div class="stat-label">Below Average</div>
+    <div class="stat-value">{{ data.below_avg_count }}</div>
+    <div class="stat-sub">Students</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">⬆️</div>
+    <div class="stat-label">Highest</div>
+    <div class="stat-value">{{ data.highest }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">⬇️</div>
+    <div class="stat-label">Lowest</div>
+    <div class="stat-value">{{ data.lowest }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">✅</div>
+    <div class="stat-label">Pass Rate</div>
+    <div class="stat-value">{{ data.pass_rate }}%</div>
+    <div class="stat-sub">Marks ≥ 50</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🎂</div>
+    <div class="stat-label">Avg Age</div>
+    <div class="stat-value">{{ data.age_avg }}</div>
+    <div class="stat-sub">Years</div>
+  </div>
+</div>
+
+<!-- Charts row -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+
+  <!-- Grade distribution -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">Grade Distribution</span></div>
+    <div class="card-body" style="display:flex;justify-content:center;">
+      <canvas id="gradeChart" width="260" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- Marks bar chart -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">Marks per Student</span></div>
+    <div class="card-body">
+      <canvas id="marksChart" height="220"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- Grade breakdown table -->
+<div class="card">
+  <div class="card-head"><span class="card-title">Grade Breakdown</span></div>
+  <div class="card-body">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Grade</th><th>Count</th><th>Share</th><th>Visual</th></tr>
+        </thead>
+        <tbody>
+          {% for g, cnt in data.grade_dist.items() | sort %}
+          <tr>
+            <td><span class="grade grade-{{ g }}">{{ g }}</span></td>
+            <td style="font-weight:600;">{{ cnt }}</td>
+            <td style="color:var(--ink-mute);">{{ (cnt / data.total * 100) | round(1) }}%</td>
+            <td style="width:200px;">
+              <div class="bar-track" style="height:8px;">
+                <div class="bar-fill" style="width:{{ (cnt / data.total * 100) | round(0) }}%;
+                  background:{% if g=='A' %}var(--emerald){% elif g=='B' %}#3b82f6{% elif g=='C' %}var(--gold){% else %}var(--rose){% endif %};"></div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if data %}
+<script>
+const gradeData = {{ data.grade_dist | tojson }};
+const marksData = {{ data.marks_list | tojson }};
+const names     = {{ data.names | tojson }};
+
+// Doughnut — grade distribution
+const gradeColors = {A:'#00C897',B:'#3b82f6',C:'#F5A623',D:'#f97316',E:'#FF6584',F:'#ef4444'};
+new Chart(document.getElementById('gradeChart'), {
+  type: 'doughnut',
+  data: {
+    labels: Object.keys(gradeData),
+    datasets: [{
+      data: Object.values(gradeData),
+      backgroundColor: Object.keys(gradeData).map(g => gradeColors[g] || '#999'),
+      borderWidth: 2, borderColor: '#fff',
+    }]
+  },
+  options: {
+    plugins: { legend: { position:'bottom', labels:{ font:{family:'Plus Jakarta Sans',size:12}, padding:14 } } },
+    cutout: '62%'
+  }
+});
+
+// Bar — marks per student
+new Chart(document.getElementById('marksChart'), {
+  type: 'bar',
+  data: {
+    labels: names,
+    datasets: [{
+      label: 'Marks',
+      data: marksData,
+      backgroundColor: marksData.map(m => m>=75 ? '#00C89755' : m>=50 ? '#F5A62355' : '#FF658455'),
+      borderColor:     marksData.map(m => m>=75 ? '#00C897'   : m>=50 ? '#F5A623'   : '#FF6584'),
+      borderWidth: 2, borderRadius: 6,
+    }]
+  },
+  options: {
+    plugins: { legend:{ display:false } },
+    scales: {
+      y: { beginAtZero:true, max:100, grid:{color:'#E2E4F0'}, ticks:{font:{family:'Plus Jakarta Sans'}} },
+      x: { grid:{display:false}, ticks:{ font:{family:'Plus Jakarta Sans',size:11}, maxRotation:30 } }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}
